@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>仮名ローマ字テスト</title>
+    <style>
+        body {
+            font-family: 'MS PGothic', 'MS Gothic', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        label {
+            font-size: 18px;
+            margin:0px 0;
+        }
+
+        input {
+            width: 300px;
+            font-size: 16px;
+            padding: 5px;
+            margin:0px 0;
+            font-family: 'MS PGothic', 'MS Gothic', sans-serif;
+        }
+
+        .button-container {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap; 
+            width: 50%; 
+            gap: 10px; 
+            margin: 20px 0;
+        }
+
+        .button-wrapper {
+            display: flex;
+            align-items: center;
+            flex: 1;
+            margin: 1px; 
+        }
+
+        button {
+            font-size: 16px;
+            padding: 5px 8px;
+            font-family: inherit;
+            cursor: pointer;
+            min-width: 140px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background-color: transparent;
+        }
+
+        button:hover:not(:disabled) {
+            background-color: #f0f0f0;
+        }
+
+        .shortcut-tip {
+            font-size: 12px;
+            color: gray;
+            text-align: center;
+            margin-top: 2px;
+        }
+
+        #output {
+            font-size: 18px;
+            margin:0px 0;
+        }
+
+        #stats {
+            font-size: 14px;
+            margin:0px 0;
+        }
+
+        #record-output {
+            white-space: pre-line;
+            font-family: inherit;
+            margin:0px 0;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .question-type-filter {
+            margin-top: 2px;
+        }
+
+        .question-type-filter button {
+            margin-left: 2px; 
+            margin-right: 2px; 
+        }
+    </style>
+</head>
+<body>
+    <label id="known-label">​既知：</label>
+    <label id="answer-label">回答：</label>
+    <input type="text" id="input-field" placeholder="ここに回答を入力してください。">
+    
+    <div class="button-container">
+        <div class="button-wrapper">
+            <button id="answer-button">回答提出</button>
+            <div class="shortcut-tip">Enter</div>
+        </div>
+        <div class="button-wrapper">
+            <button id="change-question-button">問題変更</button>
+            <div class="shortcut-tip">Tab</div>
+        </div>
+        <div class="button-wrapper">
+            <button id="toggle-correct-button">正解記録</button>
+            <div class="shortcut-tip" id="correct-tip">off</div>
+        </div>
+        <div class="button-wrapper">
+            <button id="toggle-wrong-button">誤答記録</button>
+            <div class="shortcut-tip" id="wrong-tip">on</div>
+        </div>
+        <div class="button-wrapper">
+            <button id="clear-records-button">記録を消去</button>
+        </div>
+        <div class="button-wrapper">
+            <button id="save-records-button">記録を保存</button>
+        </div>
+
+        <div class="button-group question-type-filter">
+            <div class="button-wrapper">
+                <button id="清音の問題-button" class="active" style="background-color: gray;">清音の問題</button>
+                <div class="shortcut-tip" id="清音の問題-tip">on</div>
+            </div>
+            <div class="button-wrapper">
+                <button id="濁音の問題-button" class="active" style="background-color: gray;">濁音の問題</button>
+                <div class="shortcut-tip" id="濁音の問題-tip">on</div>
+            </div>
+            <div class="button-wrapper">
+                <button id="拗音の問題-button" class="active" style="background-color: gray;">拗音の問題</button>
+                <div class="shortcut-tip" id="拗音の問題-tip">on</div>
+            </div>
+            <div class="button-wrapper">
+                <button id="仮名の問題-button" class="active" style="background-color: gray;">仮名の問題</button>
+                <div class="shortcut-tip" id="仮名の問題-tip">平と片</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="output"></div>
+    <div id="stats">
+        <p>正解数: <span id="correct-count">0</span></p>
+        <p>問題数: <span id="total-count">0</span></p>
+        <p>正答率: <span id="accuracy">0.00%</span></p>
+    </div>
+    <div id="record-output"></div>
+
+
+    <script>
+        const word_list = [
+                ["a", "あ", "ア"],
+                ["i", "い", "イ"],
+                ["u", "う", "ウ"],
+                ["e", "え", "エ"],
+                ["o", "お", "オ"],
+                ["ka", "か", "カ"],
+                ["ki", "き", "キ"],
+                ["ku", "く", "ク"],
+                ["ke", "け", "ケ"],
+                ["ko", "こ", "コ"],
+                ["sa", "さ", "サ"],
+                ["shi", "し", "シ"],
+                ["su", "す", "ス"],
+                ["se", "せ", "セ"],
+                ["so", "そ", "ソ"],
+                ["ta", "た", "タ"],
+                ["chi", "ち", "チ"],
+                ["tsu", "つ", "ツ"],
+                ["te", "て", "テ"],
+                ["to", "と", "ト"],
+                ["na", "な", "ナ"],
+                ["ni", "に", "ニ"],
+                ["nu", "ぬ", "ヌ"],
+                ["ne", "ね", "ネ"],
+                ["no", "の", "ノ"],
+                ["ha", "は", "ハ"],
+                ["hi", "ひ", "ヒ"],
+                ["fu", "ふ", "フ"],
+                ["he", "へ", "ヘ"],
+                ["ho", "ほ", "ホ"],
+                ["ma", "ま", "マ"],
+                ["mi", "み", "ミ"],
+                ["mu", "む", "ム"],
+                ["me", "め", "メ"],
+                ["mo", "も", "モ"],
+                ["ya", "や", "ヤ"],
+                ["yu", "ゆ", "ユ"],
+                ["yo", "よ", "ヨ"],
+                ["ra", "ら", "ラ"],
+                ["ri", "り", "リ"],
+                ["ru", "る", "ル"],
+                ["re", "れ", "レ"],
+                ["ro", "ろ", "ロ"],
+                ["wa", "わ", "ワ"],
+                ["wo", "を", "ヲ"],
+                ["n", "ん", "ン"],
+                ["ga", "が", "ガ"],
+                ["gi", "ぎ", "ギ"],
+                ["gu", "ぐ", "グ"],
+                ["ge", "げ", "ゲ"],
+                ["go", "ご", "ゴ"],
+                ["za", "ざ", "ザ"],
+                ["ji", "じ", "ジ"],
+                ["zu", "ず", "ズ"],
+                ["ze", "ぜ", "ゼ"],
+                ["zo", "ぞ", "ゾ"],
+                ["da", "だ", "ダ"],
+                ["de", "で", "デ"],
+                ["do", "ど", "ド"],
+                ["ba", "ば", "バ"],
+                ["bi", "び", "ビ"],
+                ["bu", "ぶ", "ブ"],
+                ["be", "べ", "ベ"],
+                ["bo", "ぼ", "ボ"],
+                ["pa", "ぱ", "パ"],
+                ["pi", "ぴ", "ピ"],
+                ["pu", "ぷ", "プ"],
+                ["pe", "ぺ", "ペ"],
+                ["po", "ぽ", "ポ"],
+                ["kya", "きゃ", "キャ"],
+                ["kyu", "きゅ", "キュ"],
+                ["kyo", "きょ", "キョ"],
+                ["gya", "ぎゃ", "ギャ"],
+                ["gyu", "ぎゅ", "ギュ"],
+                ["gyo", "ぎょ", "ギョ"],
+                ["sha", "しゃ", "シャ"],
+                ["shu", "しゅ", "シュ"],
+                ["sho", "しょ", "ショ"],
+                ["ja", "じゃ", "ジャ"],
+                ["ju", "じゅ", "ジュ"],
+                ["jo", "じょ", "ジョ"],
+                ["cha", "ちゃ", "チャ"],
+                ["chu", "ちゅ", "チュ"],
+                ["cho", "ちょ", "チョ"],
+                ["nya", "にゃ", "ニャ"],
+                ["nyu", "にゅ", "ニュ"],
+                ["nyo", "にょ", "ニョ"],
+                ["hya", "ひゃ", "ヒャ"],
+                ["hyu", "ひゅ", "ヒュ"],
+                ["hyo", "ひょ", "ヒョ"],
+                ["mya", "みゃ", "ミャ"],
+                ["myu", "みゅ", "ミュ"],
+                ["myo", "みょ", "ミョ"],
+                ["rya", "りゃ", "リャ"],
+                ["ryu", "りゅ", "リュ"],
+                ["ryo", "りょ", "リョ"],
+            ];
+        const word_type = ["ローマ字", "平仮名", "片仮名"];
+    
+        let correct_count = 0;
+        let total_count = 0;
+    
+        let record_correct_enabled = false;
+        let record_wrong_enabled = true;
+    
+        let records = [];
+    
+        // 新增：四个按钮的状态
+        let 清音の問題_enabled = true;
+        let 濁音の問題_enabled = true;
+        let 拗音の問題_enabled = true;
+        let 仮名の問題_state = 0; // 0: 平と片, 1: 平仮名, 2: 片仮名
+    
+        // 生成时间字符串
+        function generateTimeString() {
+            const now = new Date();
+            return `[${String(now.getFullYear()).slice(-2)}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}/${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}]`;
+        }
+    
+        // 生成随机问题
+        function generate_random_question() {
+            let randomIndex;
+            let randomType;
+            do {
+                randomIndex = Math.floor(Math.random() * word_list.length);
+                if (仮名の問題_state === 0) {
+                    randomType = Math.random() < 0.5 ? 1 : 2;
+                } else if (仮名の問題_state === 1) {
+                    randomType = 1;
+                } else {
+                    randomType = 2;
+                }
+            } while (
+                (!清音の問題_enabled && randomIndex <= 44) ||
+                (!濁音の問題_enabled && (randomIndex > 44 && randomIndex <= 67)) ||
+                (!拗音の問題_enabled && randomIndex > 67)
+            );
+
+            const answerType = 0;
+            const question = word_list[randomIndex][randomType];
+            const question_type = word_type[answerType];
+            const answer = word_list[randomIndex][answerType];
+            return [question, question_type, answer];
+        }
+    
+        let [random_question, random_question_type, random_answer] = generate_random_question();
+    
+        // 更改问题
+        function change_question() {
+            if (!清音の問題_enabled &&!濁音の問題_enabled &&!拗音の問題_enabled) {
+                return;
+            }
+            [random_question, random_question_type, random_answer] = generate_random_question();
+            document.getElementById('known-label').textContent = `​既知：${random_question}`;
+            document.getElementById('answer-label').textContent = `回答：${random_question_type}`;
+            document.getElementById('input-field').value = '';
+            document.getElementById('output').textContent = '';
+            document.getElementById('input-field').focus();
+        }
+    
+        // 记录问题
+        function record_question(question, question_type, user_answer, correct_answer, result) {
+            if ((result === "○" && record_correct_enabled) || (result === "×" && record_wrong_enabled)) {
+                const time_str = generateTimeString();
+                records.push(`${time_str}(${result})${question}の${question_type}について、正解は：${correct_answer}、あなたの回答は：${user_answer}`);
+                const record_output = document.getElementById('record-output');
+                record_output.innerHTML = records.join('<br>');
+            }
+        }
+    
+        // 清除记录
+        function clear_records() {
+            const time_str = generateTimeString();
+            records = [];
+            records.push(`${time_str} 記録をクリアしましたよ～`);
+            const record_output = document.getElementById('record-output');
+            record_output.innerHTML = records.join('<br>');
+            document.getElementById('output').textContent = "記録をクリアしましたよ～";
+        }
+    
+        // 切换正解记录
+        function toggle_record_correct() {
+            record_correct_enabled = !record_correct_enabled;
+            const correct_button = document.getElementById('toggle-correct-button');
+            correct_button.style.backgroundColor = record_correct_enabled ? 'gray' : '';
+            document.getElementById('correct-tip').textContent = record_correct_enabled ? 'on' : 'off';
+        }
+    
+        // 切换误答记录
+        function toggle_record_wrong() {
+            record_wrong_enabled = !record_wrong_enabled;
+            const wrong_button = document.getElementById('toggle-wrong-button');
+            wrong_button.style.backgroundColor = record_wrong_enabled ? 'gray' : '';
+            document.getElementById('wrong-tip').textContent = record_wrong_enabled ? 'on' : 'off';
+        }
+    
+        // 回答问题
+        function answer() {
+            const input_field = document.getElementById('input-field');
+            const output = document.getElementById('output');
+            const correct_count_span = document.getElementById('correct-count');
+            const total_count_span = document.getElementById('total-count');
+            const accuracy_span = document.getElementById('accuracy');
+
+            // 检查是否所有问题类型都已关闭
+            if (!清音の問題_enabled &&!濁音の問題_enabled &&!拗音の問題_enabled) {
+                output.textContent = "現在、すべての問題タイプが閉じられています。少なくとも1つの問題タイプを開いてください。";
+                return;
+            }
+
+            // 获取用户输入的内容，去除首尾空格
+            const input_content = input_field.value.trim();
+            // 正确答案，同样去除首尾空格
+            const correct_answer = random_answer.trim();
+
+            // 问题总数加 1
+            total_count++;
+            // 判断用户输入是否与正确答案严格相等
+            let is_correct = input_content === correct_answer;
+
+            const result = is_correct? "○" : "×";
+            // 记录问题相关信息
+            record_question(random_question, random_question_type, input_field.value, random_answer, result);
+
+            if (is_correct) {
+                // 正确数量加 1
+                correct_count++;
+                // 更换问题
+                change_question();
+                output.textContent = "正解です！";
+            } else {
+                output.textContent = `回答が間違っています！正解は${random_answer}です。`;
+                // 清空输入框
+                input_field.value = '';
+            }
+
+            // 计算正确率
+            const accuracy = total_count > 0? (correct_count / total_count * 100).toFixed(2) : 0;
+            correct_count_span.textContent = correct_count;
+            total_count_span.textContent = total_count;
+            accuracy_span.textContent = `${accuracy}%`;
+        }
+    
+        // 保存记录为 TXT 文件
+        function saveRecordsAsTxt() {
+            const recordText = records.join('\n');
+            const blob = new Blob([recordText], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = '練習記録.txt';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+    
+        // 切换清音の問題按钮状态
+        function toggle_清音の問題() {
+            清音の問題_enabled = !清音の問題_enabled;
+            const button = document.getElementById('清音の問題-button');
+            button.style.backgroundColor = 清音の問題_enabled ? 'gray' : '';
+            document.getElementById('清音の問題-tip').textContent = 清音の問題_enabled ? 'on' : 'off';
+            updateAnswerButtonState();
+        }
+    
+        // 切换濁音の問題按钮状态
+        function toggle_濁音の問題() {
+            濁音の問題_enabled = !濁音の問題_enabled;
+            const button = document.getElementById('濁音の問題-button');
+            button.style.backgroundColor = 濁音の問題_enabled ? 'gray' : '';
+            document.getElementById('濁音の問題-tip').textContent = 濁音の問題_enabled ? 'on' : 'off';
+            updateAnswerButtonState();
+        }
+    
+        // 切换拗音の問題按钮状态
+        function toggle_拗音の問題() {
+            拗音の問題_enabled = !拗音の問題_enabled;
+            const button = document.getElementById('拗音の問題-button');
+            button.style.backgroundColor = 拗音の問題_enabled ? 'gray' : '';
+            document.getElementById('拗音の問題-tip').textContent = 拗音の問題_enabled ? 'on' : 'off';
+            updateAnswerButtonState();
+        }
+
+        // 更新回答按钮状态
+        function updateAnswerButtonState() {
+            const answerButton = document.getElementById('answer-button');
+            const changeQuestionButton = document.getElementById('change-question-button');
+            if (!清音の問題_enabled &&!濁音の問題_enabled &&!拗音の問題_enabled) {
+                answerButton.disabled = true;
+                changeQuestionButton.disabled = true;
+                document.getElementById('output').textContent = "現在、すべてのタイプの質問が閉じられています。少なくとも一つのタイプの質問を開いてください 。";
+            } else {
+                answerButton.disabled = false;
+                changeQuestionButton.disabled = false;
+                document.getElementById('output').textContent = "";
+            }
+        }
+    
+        // 切换仮名の問題按钮状态
+        function toggle_仮名の問題() {
+            仮名の問題_state = (仮名の問題_state + 1) % 3;
+            const button = document.getElementById('仮名の問題-button');
+            const tip = document.getElementById('仮名の問題-tip');
+            if (仮名の問題_state === 0) {
+                button.style.backgroundColor = 'gray';
+                tip.textContent = '平と片';
+            } else if (仮名の問題_state === 1) {
+                button.style.backgroundColor = '';
+                tip.textContent = '平仮名';
+            } else {
+                button.style.backgroundColor = '';
+                tip.textContent = '片仮名';
+            }
+        }
+    
+        // 键盘事件监听
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter') {
+                answer();
+            } else if (event.key === 'Tab') {
+                event.preventDefault();
+                change_question();
+            }
+        });
+    
+        // 初始化问题显示
+        document.getElementById('known-label').textContent = `​既知：${random_question}`;
+        document.getElementById('answer-label').textContent = `回答：${random_question_type}`;
+    
+        // 按钮事件监听
+        document.getElementById('answer-button').addEventListener('click', answer);
+        document.getElementById('change-question-button').addEventListener('click', change_question);
+        document.getElementById('toggle-correct-button').addEventListener('click', toggle_record_correct);
+        document.getElementById('toggle-wrong-button').addEventListener('click', toggle_record_wrong);
+        document.getElementById('clear-records-button').addEventListener('click', clear_records);
+        document.getElementById('save-records-button').addEventListener('click', saveRecordsAsTxt);
+        document.getElementById('清音の問題-button').addEventListener('click', toggle_清音の問題);
+        document.getElementById('濁音の問題-button').addEventListener('click', toggle_濁音の問題);
+        document.getElementById('拗音の問題-button').addEventListener('click', toggle_拗音の問題);
+        document.getElementById('仮名の問題-button').addEventListener('click', toggle_仮名の問題);
+    
+        // 设置默认状态下“誤答記録”按钮的背景色
+        const wrongButton = document.getElementById('toggle-wrong-button');
+        wrongButton.style.backgroundColor = record_wrong_enabled ? 'gray' : '';
+    
+        document.getElementById('input-field').focus();
+    </script>
+</body>
+</html>
+
+    <script>
+        
+    </script>
+</body>
+
+</html>
